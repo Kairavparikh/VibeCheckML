@@ -15,7 +15,7 @@ Analyze the sentiment of YouTube video comments using a custom-trained machine l
 ## Tech Stack
 - **Frontend:** HTML, CSS (Tailwind), JavaScript, ApexCharts
 - **Backend:** Python Flask
-- **ML Model:** scikit-learn (SVM or similar), pickled as `sentiment_classifier.pkl`
+- **ML Model:** scikit-learn (SVM), pickled as `sentiment_classifier.pkl`
 - **APIs:** YouTube Data API v3
 
 ## Getting Started
