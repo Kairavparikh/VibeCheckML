@@ -74,3 +74,19 @@ Sentiment: POSITIVE
 
 ## Folder Structure
 ```
+VibeCheckML/
+  ├── app.js
+  ├── app.py
+  ├── data/
+  │   ├── Books_small_10000.json
+  │   └── Books_small.json
+  ├── main.py
+  ├── package-lock.json
+  ├── package.json
+  ├── public/
+  │   └── index.html
+  ├── README.md
+  ├── sentiment_classifier.pkl
+  ├── vectorizer.pkl
+  └── vibecheck_cli.py
+```
