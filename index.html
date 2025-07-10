@@ -117,7 +117,6 @@ document.getElementById('analyze-btn').addEventListener('click', async () => {
         }
         const data = await res.json();
 
-        // Show video title if present
         if (data.title) {
             document.getElementById('video-title').textContent = data.title;
         } else {
