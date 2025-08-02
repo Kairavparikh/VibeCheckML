@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>YouTube Comment Sentiment Analyzer</title>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Lato&family=Open+Sans&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+</head>
+<body>
+<div id="VibeCheckML">
+    <div class="w-full max-w-6xl mx-auto p-6 bg-white">
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">YouTube Comment Sentiment Analyzer</h1>
+            <p class="text-gray-600">Analyze the sentiment of YouTube video comments using AI</p>
+            <div id="video-title" class="text-lg font-semibold text-indigo-700 mt-2"></div>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-6 mb-8">
+            <div class="flex flex-col md:flex-row gap-4">
+                <div class="flex-1">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">YouTube Video URL</label>
+                    <input
+                        id="yt-url"
+                        type="url"
+                        placeholder="https://www.youtube.com/watch?v=..."
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+                    />
+                </div>
+                <div class="flex items-end">
+                    <button
+                        id="analyze-btn"
+                        style="
+                            background: linear-gradient(90deg, #611bf8 0%, #7341ff 100%);
+                            color: #fff;
+                            font-size: 0.8rem;
+                            font-weight: bold;
+                            padding: 16px 40px;
+                            border-radius: 12px;
+                            box-shadow: 0 4px 16px rgba(99,27,255,0.15);
+                            border: none;
+                            cursor: pointer;
+                        "
+                        onmouseover="this.style.background='#4607d0'"
+                        onmouseout="this.style.background='linear-gradient(90deg, #611bf8 0%, #7341ff 100%)'"
+                    >
+                        Analyze
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Sentiment Distribution</h2>
+                <div class="h-80"><div id="sentiment-chart"></div></div>
+            </div>
+            <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Example Comments by Sentiment</h2>
+                <div id="examples" class="space-y-4"></div>
+            </div>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-lg shadow-sm">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xl font-semibold text-gray-800">All Comments</h2>
+                    <span id="comment-count" class="text-sm text-gray-500"></span>
+                </div>
+            </div>
+            <div id="all-comments" class="divide-y divide-gray-200"></div>
+        </div>
+    </div>
+</div>
+<script>
+const sentimentColors = {
+    POSITIVE: {bg: 'bg-green-50', border: 'border-green-500', text: 'text-green-800', icon: 'sentiment_satisfied', iconBg: 'bg-green-500'},
+    NEGATIVE: {bg: 'bg-red-50', border: 'border-red-500', text: 'text-red-800', icon: 'sentiment_dissatisfied', iconBg: 'bg-red-500'},
+    NEUTRAL:  {bg: 'bg-gray-50', border: 'border-gray-400', text: 'text-gray-800', icon: 'sentiment_neutral', iconBg: 'bg-gray-400'}
+};
+
+function escapeHtml(text) {
+    return text.replace(/[&<>'"]/g, function (c) {
+        return ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            "'": '&#39;',
+            '"': '&quot;'
+        })[c];
+    });
+}
+
+let chartInstance = null;
+document.getElementById('analyze-btn').addEventListener('click', async () => {
+    const btn = document.getElementById('analyze-btn');
+    const url = document.getElementById('yt-url').value.trim();
+    if (!url) return alert('Please enter a YouTube URL.');
+    btn.innerHTML = '<span class="material-symbols-outlined animate-spin">refresh</span> Analyzing...';
+    try {
+        const res = await fetch('/analyze', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({url})
+        });
+        btn.innerHTML = 'Analyze';
+        if (!res.ok) {
+            const err = await res.json();
+            document.getElementById('examples').innerHTML = `<span class="text-red-600">${err.error || 'Server error'}</span>`;
+            document.getElementById('all-comments').innerHTML = '';
+            document.getElementById('comment-count').textContent = '';
+            document.getElementById('video-title').textContent = '';
+            if (chartInstance) {
+                chartInstance.destroy();
+                chartInstance = null;
+            }
+            return;
+        }
+        const data = await res.json();
+
+        if (data.title) {
+            document.getElementById('video-title').textContent = data.title;
+        } else {
+            document.getElementById('video-title').textContent = '';
+        }
+
+        const chartLabels = Object.keys(data.breakdown);
+        const chartSeries = Object.values(data.breakdown);
+        if (chartInstance) {
+            chartInstance.destroy();
+        }
+        chartInstance = new ApexCharts(document.querySelector('#sentiment-chart'), {
+            chart: {type: "pie", width: "100%", height: "320px", toolbar: {show: false}},
+            labels: chartLabels,
+            colors: chartLabels.map(l => l === 'POSITIVE' ? "#7341ff" : l === 'NEGATIVE' ? "#ef4444" : "#b1b1b1"),
+            legend: {position: "bottom"},
+            dataLabels: {enabled: true},
+            tooltip: {y: {}},
+            series: chartSeries
+        });
+        chartInstance.render();
+
+        let exHtml = '';
+        for (const [sent, comments] of Object.entries(data.examples)) {
+            const c = sentimentColors[sent] || sentimentColors.NEUTRAL;
+            exHtml += `<div class="p-4 ${c.bg} rounded-lg border-l-4 ${c.border}">
+                <div class="flex items-center mb-2">
+                    <span class="material-symbols-outlined ${c.text} mr-2">${c.icon}</span>
+                    <span class="font-medium ${c.text}">${sent.charAt(0) + sent.slice(1).toLowerCase()}</span>
+                </div>
+                <ul class="text-gray-700 text-sm">${comments.map(com => `<li>"${escapeHtml(com)}"</li>`).join('')}</ul>
+            </div>`;
+        }
+        document.getElementById('examples').innerHTML = exHtml;
+
+        const all = data.all_comments || [];
+        document.getElementById('comment-count').textContent = `${all.length} comments`;
+        let allHtml = '';
+        for (const comment of all) {
+            allHtml += `<div class="p-4 hover:bg-gray-50 transition-colors">
+                <div class="flex items-start space-x-3">
+                    <div class="w-8 h-8 bg-gray-400 rounded-full flex items-center justify-center">
+                        <span class="material-symbols-outlined text-white text-sm">chat</span>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-gray-700">${escapeHtml(comment)}</p>
+                    </div>
+                </div>
+            </div>`;
+        }
+        document.getElementById('all-comments').innerHTML = allHtml;
+    } catch (error) {
+        btn.innerHTML = 'Analyze';
+        document.getElementById('examples').innerHTML = `<span class="text-red-600">Network or server error</span>`;
+        document.getElementById('all-comments').innerHTML = '';
+        document.getElementById('comment-count').textContent = '';
+        document.getElementById('video-title').textContent = '';
+        if (chartInstance) {
+            chartInstance.destroy();
+            chartInstance = null;
+        }
+    }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,76 @@
+Simple Explanation of index.html and app.py
+================================================
+
+1. public/index.html
+---------------------
+- This is the main web page for the app.
+- It lets you enter a YouTube video URL and click an "Analyze" button.
+- When you click the button, it sends the URL to the backend (the Python server) to analyze the comments.
+- It shows:
+  - The title of the YouTube video
+  - A pie chart of the sentiment (positive/negative) of the comments
+  - Example comments for each sentiment
+  - A list of all comments
+- It uses JavaScript to talk to the backend and update the page with the results.
+- It uses Tailwind CSS for styling and ApexCharts for the pie chart.
+
+2. app.py
+----------
+- This is the backend server, written in Python using Flask.
+- It loads a pre-trained sentiment analysis model and a vectorizer (for text processing).
+- When it gets a request at /analyze (from the web page), it:
+  1. Extracts the video ID from the YouTube URL.
+  2. Uses the YouTube API to download up to 100 comments from the video.
+  3. Uses the model to predict if each comment is POSITIVE or NEGATIVE.
+  4. Counts how many comments are positive/negative and picks a few example comments for each.
+  5. Sends back the results (breakdown, examples, all comments, and video title) as JSON.
+- The web page uses this data to update the charts and lists.
+
+How they work together
+----------------------
+- You open index.html in your browser.
+- You enter a YouTube URL and click Analyze.
+- The page sends the URL to app.py (the backend server).
+- app.py fetches comments, analyzes them, and sends back the results.
+- The page updates to show the sentiment analysis results in a user-friendly way. 
+
+High-Level Explanation with Specific Lines
+==========================================
+
+public/index.html
+------------------
+- **Lines 1-10:** HTML setup, includes styles (Tailwind CSS), fonts, and chart library (ApexCharts).
+- **Lines 12-54:** Main UI layout. Includes:
+  - App title and description (lines 15-18)
+  - Input for YouTube URL and Analyze button (lines 21-38)
+  - Sections for sentiment chart, example comments, and all comments (lines 40-54)
+- **Lines 56-184:** JavaScript logic:
+  - Defines sentiment color mapping (lines 57-61)
+  - `escapeHtml` function for safe comment display (lines 63-70)
+  - Main event: When Analyze button is clicked (lines 73-184):
+    - Gets the YouTube URL from the input (line 75)
+    - Sends a POST request to the backend at `/analyze` (lines 80-84)
+    - Handles the response: updates video title, draws the pie chart, shows example comments, and lists all comments (lines 90-164)
+    - Handles errors and resets UI if needed (lines 165-183)
+
+app.py
+-------
+- **Lines 1-8:** Imports and Flask app setup.
+- **Lines 10-13:** Enables CORS (allows frontend to talk to backend from different origins).
+- **Lines 15-18:** Loads the sentiment model and vectorizer from files.
+- **Line 20:** Reads YouTube API key from environment.
+- **Lines 22-25:** `extract_video_id` function: gets the video ID from a YouTube URL.
+- **Lines 27-51:** `fetch_comments` function: downloads up to 100 comments from the YouTube API.
+- **Lines 53-62:** `fetch_video_title` function: gets the video title from the YouTube API.
+- **Lines 64-91:** `/analyze` endpoint:
+  - Gets the URL from the request (line 66)
+  - Extracts video ID (line 67)
+  - Fetches comments and title (lines 70-72)
+  - Runs sentiment analysis (lines 76-80)
+  - Prepares and returns the results as JSON (lines 81-90)
+- **Lines 92-93:** Runs the Flask app on port 5050.
+
+How they connect:
+------------------
+- The frontend (index.html) sends a request to the backend (app.py) at `/analyze` (see index.html line 80, app.py line 64).
+- The backend processes the request, analyzes comments, and sends results back to the frontend, which updates the UI. 
